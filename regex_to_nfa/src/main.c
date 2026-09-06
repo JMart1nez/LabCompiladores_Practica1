@@ -5,6 +5,25 @@
 #include <string.h>
 #include <getopt.h>
 
+/* Una linea representa una entrada, incluso al llenar el buffer.
+ * Evita interpretar el salto de una linea de 1023 caracteres como otra cadena. */
+static int read_line(char *buf, size_t capacity)
+{
+    if (!fgets(buf, (int)capacity, stdin)) return 0;
+    if (strchr(buf, '\n') == NULL)
+    {
+        int c = getchar();
+        if (c == '\r') c = getchar();
+        if (c != '\n' && c != EOF)
+        {
+            fprintf(stderr, "Error: linea demasiado larga (maximo 1023).\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    buf[strcspn(buf, "\r\n")] = '\0';
+    return 1;
+}
+
 void print_postfix(regex r)
 {
     for (int i = 0; i < r.size; i++)
@@ -18,11 +37,11 @@ void test_strings_stdin(const char *regex_str)
 {
     regex r = parse_regex(regex_str);
     nfa n = regex_to_nfa(r);
+    free(r.items);
 
     char buf[1024];
-    while (fgets(buf, sizeof(buf), stdin))
+    while (read_line(buf, sizeof(buf)))
     {
-        buf[strcspn(buf, "\r\n")] = '\0';
         int result = match_nfa(n, buf, strlen(buf));
         printf("%d", result ? 1 : 0);
     }
@@ -35,6 +54,7 @@ int serialize_nfa_from_regex(const char *regex_str, const char *output_path)
 {
     regex r = parse_regex(regex_str);
     nfa n = regex_to_nfa(r);
+    free(r.items);
 
     bool ok = save_nfa(&n, output_path);
     free_nfa(&n);
@@ -96,15 +116,16 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (!fgets(regex_str, sizeof(regex_str), stdin))
+    if (!read_line(regex_str, sizeof(regex_str)))
     {
         return 1;
     }
-    regex_str[strcspn(regex_str, "\r\n")] = '\0';
 
     if (mode == 'r')
     {
-        print_postfix(parse_regex(regex_str));
+        regex r = parse_regex(regex_str);
+        print_postfix(r);
+        free(r.items);
         return 0;
     }
 
