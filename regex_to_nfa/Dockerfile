@@ -7,4 +7,4 @@ WORKDIR /app
 # Copy the source code into the container
 COPY . .
 # Container starts by compiling the code and running the validator
-CMD ["sh", "-c", "cmake -B build -S . && cmake --build build && ./build/validator"]
+CMD ["sh", "-c", "cmake -B build -S . && cmake --build build && cp build/regex_to_nfa . && ./validator"]

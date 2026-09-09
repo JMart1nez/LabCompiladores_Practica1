@@ -232,6 +232,29 @@ nfa regex_to_nfa(regex r)
                 break;
             }
 
+
+            /* Opcional f?
+            * Igual que la cerradura de Kleene pero sin el ciclo de repeticion,de modo que el subautomata se recorre cero o una vez
+            */
+            case '?':
+            {
+                if (top < 1) { goto malformed; }
+
+                subautomata f = stack[--top];
+
+                int acc = nfa_add_state(&n, epsilon, no_edge, no_edge);
+                int st = nfa_add_state(&n, epsilon, f.start, acc);
+
+                if (acc == no_edge || st == no_edge) { goto malformed; }
+
+                n.states[f.accept].out1 = acc;
+
+                stack[top].start = st;
+                stack[top].accept = acc;
+                top++;
+                break;
+            }
+
             /* Un parentesis en el postfijo significa que la expresion
              * venia desbalanceada, es invalida
              */

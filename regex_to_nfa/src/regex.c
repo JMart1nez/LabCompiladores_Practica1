@@ -15,7 +15,8 @@ int is_operand(char c) {
 int precedence(char c) {
     switch (c) {
         case '*':           // Estrella de Kleene
-        case '+': return 3; // Cerradura positiva
+        case '+':           // Cerradura positiva
+        case '?': return 3; // Opcional
         case '.': return 2; // Concatenación
         case '|': return 1; // Or
         default: return 0;
@@ -35,7 +36,7 @@ void add_explicit_concat(const char *input, char *output) {
             // Regla de concatenación: 
             // Si c1 es operando, '*', o ')'
             // Y c2 es operando o '(' entonces concatenamos
-            if ((is_operand(c1) || c1 == '*' || c1 == '+' || c1 == ')') &&
+            if ((is_operand(c1) || c1 == '*' || c1 == '+' || c1 == '?' || c1 == ')') &&
                 (is_operand(c2) || c2 == '(')) {
                 output[j++] = '.';
             }
@@ -65,7 +66,7 @@ regex parse_regex(const char *regex_str) {
         } else if (c == ')') {
             if (depth == 0 || need_operand) goto invalid;
             depth--;
-        } else if (c == '*' || c == '+') {
+        } else if (c == '*' || c == '+' || c == '?') {
             if (need_operand) goto invalid;
         } else if (c == '|' || c == '.') {
             if (need_operand) goto invalid;
