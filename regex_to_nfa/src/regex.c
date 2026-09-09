@@ -8,7 +8,7 @@
 
 // Función auxiliar para saber si un carácter es un operando (letras/números)
 int is_operand(char c) {
-    return isalnum(c);
+    return isalnum((unsigned char)c);
 }
 
 // Determina la prioridad de los operadores
@@ -46,6 +46,36 @@ void add_explicit_concat(const char *input, char *output) {
 
 // Algoritmo de Shunting-Yard
 regex parse_regex(const char *regex_str) {
+    /* Validar antes de convertir evita que a) termine convertido en a.
+     * Se conserva el alfabeto alfanumerico y el limite del main original. */
+    int depth = 0;
+    int need_operand = 1;
+    size_t input_len = strlen(regex_str);
+    if (input_len > 1023) {
+        fprintf(stderr, "Error: expresion demasiado larga (maximo 1023).\n");
+        exit(EXIT_FAILURE);
+    }
+    for (size_t i = 0; i < input_len; i++) {
+        char c = regex_str[i];
+        if (is_operand(c)) {
+            need_operand = 0;
+        } else if (c == '(') {
+            depth++;
+            need_operand = 1;
+        } else if (c == ')') {
+            if (depth == 0 || need_operand) goto invalid;
+            depth--;
+        } else if (c == '*' || c == '+') {
+            if (need_operand) goto invalid;
+        } else if (c == '|' || c == '.') {
+            if (need_operand) goto invalid;
+            need_operand = 1;
+        } else {
+            goto invalid;
+        }
+    }
+    if (depth != 0 || (input_len != 0 && need_operand)) goto invalid;
+
     char with_concat[2048];
     add_explicit_concat(regex_str, with_concat);
 
@@ -55,6 +85,10 @@ regex parse_regex(const char *regex_str) {
     regex result;
     result.items = malloc(len * sizeof(RegexItem));
     result.size = 0;
+    if (len > 0 && result.items == NULL) {
+        fprintf(stderr, "Error: memoria insuficiente.\n");
+        exit(EXIT_FAILURE);
+    }
 
     // Pila temporal para operadores
     char stack[2048];
@@ -90,4 +124,7 @@ regex parse_regex(const char *regex_str) {
     }
 
     return result;
+invalid:
+    fprintf(stderr, "Error: expresion regular invalida.\n");
+    exit(EXIT_FAILURE);
 }

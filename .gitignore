@@ -1,0 +1,10 @@
+.DS_Store
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.o
+a.out
+regex_to_nfa/regex_to_nfa
+prog

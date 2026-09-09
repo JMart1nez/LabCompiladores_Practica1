@@ -1,6 +1,8 @@
 #include "nfa.h"
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 static nfa nfa_new(void)
 {
@@ -279,4 +281,82 @@ malformed:
     free(stack);
     free_nfa(&n);
     return nfa_reject_all();
+}
+
+/* Cerradura epsilon. Marcar al apilar evita repetir estados y ciclos infinitos. */
+static void epsilon_closure(nfa n, int initial, bool *set, int *stack)
+{
+    if (initial < 0 || initial >= n.size || set[initial]) return;
+    int top = 0;
+    set[initial] = true;
+    stack[top++] = initial;
+    while (top > 0)
+    {
+        int current = stack[--top];
+        if (n.states[current].symbol != epsilon) continue;
+        int edges[2] = {n.states[current].out1, n.states[current].out2};
+        for (int i = 0; i < 2; i++)
+        {
+            int next = edges[i];
+            if (next >= 0 && next < n.size && !set[next])
+            {
+                set[next] = true;
+                stack[top++] = next;
+            }
+        }
+    }
+}
+
+bool match_nfa(nfa n, const char *s, size_t len)
+{
+    if (n.states == NULL || s == NULL || n.size <= 0 ||
+        n.start < 0 || n.start >= n.size ||
+        n.accept < 0 || n.accept >= n.size) return false;
+    bool *current = calloc((size_t)n.size, sizeof(bool));
+    bool *next = calloc((size_t)n.size, sizeof(bool));
+    int *stack = malloc((size_t)n.size * sizeof(int));
+    if (current == NULL || next == NULL || stack == NULL)
+    {
+        free(current);
+        free(next);
+        free(stack);
+        return false;
+    }
+    epsilon_closure(n, n.start, current, stack);
+    for (size_t i = 0; i < len; i++)
+    {
+        memset(next, 0, (size_t)n.size * sizeof(bool));
+        for (int j = 0; j < n.size; j++)
+        {
+            if (current[j] && n.states[j].symbol == (unsigned char)s[i])
+                epsilon_closure(n, n.states[j].out1, next, stack);
+        }
+        bool *tmp = current;
+        current = next;
+        next = tmp;
+    }
+    bool accepted = current[n.accept];
+    free(current);
+    free(next);
+    free(stack);
+    return accepted;
+}
+
+/* Conserva -o: guarda indices y simbolos como JSON.
+ * -1 significa epsilon en symbol y ausencia de arista en out1/out2. */
+bool save_nfa(const nfa *n, const char *path)
+{
+    if (n == NULL || n->states == NULL || path == NULL) return false;
+    FILE *file = fopen(path, "w");
+    if (file == NULL) return false;
+    fprintf(file, "{\n  \"start\": %d,\n  \"accept\": %d,\n  \"states\": [\n",
+            n->start, n->accept);
+    for (int i = 0; i < n->size; i++)
+        fprintf(file, "    {\"symbol\": %d, \"out1\": %d, \"out2\": %d}%s\n",
+                n->states[i].symbol, n->states[i].out1, n->states[i].out2,
+                i + 1 < n->size ? "," : "");
+    fprintf(file, "  ]\n}\n");
+    bool ok = !ferror(file);
+    if (fclose(file) != 0) ok = false;
+    return ok;
 }
