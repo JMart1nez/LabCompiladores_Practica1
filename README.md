@@ -1,3 +1,10 @@
+**Practica 1**
+**Equipo**
+- Castro Hernández Rafael
+- Martínez Leal José María
+- Ortíz Vásquez Gustavo Angel
+- Gomez Calva Carlos Manuel
+
 **Regex to NFA Converter**
 
 Programa que convierte expresiones regulares en Autómatas Finitos No Deterministas (NFA) utilizando el algoritmo de construcción de Thompson.
