@@ -8,3 +8,7 @@ Makefile
 a.out
 regex_to_nfa/regex_to_nfa
 prog
+regex_to_nfa/unit_tests
+regex_to_nfa/nfa_visualizer
+regex_to_nfa/tests_tmp_nfa.json
+*.html
